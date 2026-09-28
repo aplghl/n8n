@@ -1500,7 +1500,7 @@ describe('PromotionsService', () => {
 					},
 				});
 				expect(n8nPackagesService.importPackageSelectionFromDirectory).toHaveBeenCalledWith(
-					{ user: actor },
+					{ user: actor, overwriteDeletionPolicy: 'hard-delete' },
 					{ sourceDir: packageFolder },
 					{
 						selectedProjectId: 'p1',
@@ -1618,7 +1618,7 @@ describe('PromotionsService', () => {
 						expect(
 							n8nPackagesService.importPackageSelectionFromDirectory,
 						).toHaveBeenCalledExactlyOnceWith(
-							{ user: actor },
+							{ user: actor, overwriteDeletionPolicy: 'hard-delete' },
 							{ sourceDir: packageFolder },
 							{
 								selectedProjectId: 'p1',
