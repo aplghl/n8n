@@ -7,26 +7,12 @@
 		"rule id when one exists but we still do not enable it. `replacement` records",
 		"the intended migration path for each gap."
 	],
-	"no-restricted-syntax": {
-		"layer": "base",
-		"native": null,
-		"reason": "oxlint 1.78 has no AST-selector rule and no equivalent. It is an ESLint core rule, so a jsPlugin cannot host it either: `Rule 'no-restricted-syntax' not found in plugin 'eslint'`. base uses it for the raw-enum ban; editor-ui uses it for store-migration ratchets, and editor-ui keeps ESLint.",
-		"impact": "The const-enum ban is unenforced in migrated packages.",
-		"replacement": "Add a native selector rule, or replace each selector use with a purpose-built syntactic rule."
-	},
 	"no-octal": {
 		"layer": "base",
 		"native": null,
 		"reason": "No oxlint rule. Largely covered incidentally: the oxc parser rejects legacy `0`-prefixed octal literals in strict-mode and module code, which is all of our source.",
 		"impact": "Near zero.",
 		"replacement": "No action unless non-module source becomes supported."
-	},
-	"import-x/no-extraneous-dependencies": {
-		"layer": "base",
-		"native": null,
-		"reason": "`import-x` is a reserved plugin name in oxlint, so `eslint-plugin-import-x` cannot load as a jsPlugin under its own name (`Plugin name 'import-x' is reserved`). An alias would permanently change the rule ids, and these rules are the slowest in ESLint and unvalidated through the alpha bridge.",
-		"impact": "A package can import a dependency it does not declare. Left out of the spike deliberately.",
-		"replacement": "Validate eslint-plugin-import-x with an alias, or replace the dependency check with a native package-manifest rule."
 	},
 	"typescript/prefer-optional-chain": {
 		"layer": "base",
@@ -49,6 +35,13 @@
 		"impact": "Low at runtime. The direction that breaks DI stays guarded by no-type-only-import-in-di, and these packages leave `verbatimModuleSyntax` off, so TypeScript elides a type-only-used import at emit. The cost is drift from a clean baseline.",
 		"replacement": "Wait for the upstream emitDecoratorMetadata option, or use an approved shim that suppresses decorated files.",
 		"upstream": "https://github.com/oxc-project/oxc/issues/13609"
+	},
+	"frontend/no-restricted-syntax": {
+		"layer": "frontend",
+		"native": null,
+		"reason": "editor-ui uses package-specific AST selectors for workflow-store and modal-migration ratchets. The frontend keeps ESLint for these selectors.",
+		"impact": "None for the backend migration.",
+		"replacement": "Replace each selector with a focused rule before an Oxlint-only frontend migration."
 	},
 	"frontend/vue-template-rules": {
 		"layer": "frontend",
