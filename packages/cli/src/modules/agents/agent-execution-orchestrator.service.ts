@@ -7,6 +7,7 @@ import type {
 	AgentBackgroundJobSignal,
 	AgentMessageAuthor,
 	AgentChatMessagesResponse,
+	BudgetGuardrailConfig,
 } from '@n8n/api-types';
 import { N8N_CHAT_INTEGRATION_TYPE } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
@@ -49,6 +50,7 @@ import {
 import { AgentSandboxRuntimeService } from './agent-sandbox-runtime.service';
 import { buildAgentConfigurationTelemetry } from './agent-telemetry';
 import { AgentTurnExecutionService, type AgentTurnRequest } from './agent-turn-execution.service';
+import { withBudgetGuardrail } from './budget-guardrail';
 import { AgentExecutionRecordingError } from './agent-execution-recording.error';
 import type { AgentChatBridge } from './integrations/agent-chat-bridge';
 import {
@@ -221,6 +223,8 @@ export interface StreamChatResponseConfig extends ChatExecutionInput, ChatExecut
 	messageContext?: IntegrationMessageContext | null;
 	agentInstance: RuntimeAgent;
 	toolRegistry: ToolRegistry;
+	/** Saved budget from the reconstructed runtime. Absent when the config has none. */
+	budget?: BudgetGuardrailConfig;
 	/** See `AgentRuntime.mcpServerAttributions`. */
 	mcpServerAttributions: Map<string, string>;
 	userId?: string;
@@ -537,6 +541,7 @@ export class AgentExecutionOrchestratorService {
 					agentInstance: runtime.agent,
 					toolRegistry: runtime.toolRegistry,
 					mcpServerAttributions: runtime.mcpServerAttributions,
+					budget: runtime.budget,
 					agentId,
 					message,
 					modelMessage,
@@ -681,6 +686,7 @@ export class AgentExecutionOrchestratorService {
 					agentInstance: runtime.agent,
 					toolRegistry: runtime.toolRegistry,
 					mcpServerAttributions: runtime.mcpServerAttributions,
+					budget: runtime.budget,
 					agentId,
 					message,
 					memory,
@@ -736,6 +742,7 @@ export class AgentExecutionOrchestratorService {
 					agentInstance: runtime.agent,
 					toolRegistry: runtime.toolRegistry,
 					mcpServerAttributions: runtime.mcpServerAttributions,
+					budget: runtime.budget,
 					agentId,
 					userId: user.id,
 					message,
@@ -1070,7 +1077,10 @@ export class AgentExecutionOrchestratorService {
 		return {
 			type: 'resume',
 			resumeData: config.resumeData,
-			options: this.createResumeOptions(config, memoryScope, messageContext, tracing),
+			options: withBudgetGuardrail(
+				this.createResumeOptions(config, memoryScope, messageContext, tracing),
+				{ budget: runtime.budget, sessionId: memoryScope.threadId, agentId: config.agentId },
+			),
 			recording: this.createResumeRecording(config, checkpoint, runtime, executionSource),
 		};
 	}
@@ -1274,6 +1284,7 @@ export class AgentExecutionOrchestratorService {
 			agentInstance: runtime.agent,
 			toolRegistry: runtime.toolRegistry,
 			mcpServerAttributions: runtime.mcpServerAttributions,
+			budget: runtime.budget,
 			agentId,
 			userId: user.id,
 			message,
@@ -1347,17 +1358,20 @@ export class AgentExecutionOrchestratorService {
 		return {
 			type: 'start',
 			input,
-			options: {
-				persistence: { threadId, resourceId, hostMetadata },
-				executionCounter: createAgentExecutionCounter(this.telemetry, {
-					agentId,
-					userId,
-					runType: telemetry.runType,
-				}),
-				...modelStreamStallOptions(this.aiConfig),
-				...(tracing ? { telemetry: tracing } : {}),
-				...(abortSignal ? { abortSignal } : {}),
-			},
+			options: withBudgetGuardrail(
+				{
+					persistence: { threadId, resourceId, hostMetadata },
+					executionCounter: createAgentExecutionCounter(this.telemetry, {
+						agentId,
+						userId,
+						runType: telemetry.runType,
+					}),
+					...modelStreamStallOptions(this.aiConfig),
+					...(tracing ? { telemetry: tracing } : {}),
+					...(abortSignal ? { abortSignal } : {}),
+				},
+				{ budget: config.budget, sessionId: threadId, agentId },
+			),
 			recording: this.createChatRecording(config),
 		};
 	}
@@ -1454,6 +1468,7 @@ export class AgentExecutionOrchestratorService {
 			agentInstance: runtime.agent,
 			toolRegistry: runtime.toolRegistry,
 			mcpServerAttributions: runtime.mcpServerAttributions,
+			budget: runtime.budget,
 			agentId,
 			...(isDraft
 				? { userId: identity.user.id }

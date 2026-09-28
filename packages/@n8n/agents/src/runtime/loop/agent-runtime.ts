@@ -957,6 +957,9 @@ export class AgentRuntime {
 				}
 			}
 			const turn = await sink.callModel(modelCallContext);
+			// Price the turn before guardrails see it. The finish chunk prices
+			// the summed tokens later; mergeUsage drops per-turn cost.
+			turn.usage = this.applyCost(turn.usage);
 			if (guardrails && guardCtx) await guardrails.after(guardCtx, turn.usage);
 			return turn;
 		};
