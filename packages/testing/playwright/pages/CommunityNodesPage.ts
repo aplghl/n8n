@@ -19,6 +19,15 @@ export class CommunityNodesPage extends BasePage {
 		return this.page.getByTestId('empty-state');
 	}
 
+	getCommunityCard(packageName: string): Locator {
+		return this.getCommunityCards().filter({ hasText: packageName });
+	}
+
+	/** Error text the install modal shows under the package name input. */
+	getInstallModalError(text: string | RegExp): Locator {
+		return this.getInstallModal().getByText(text);
+	}
+
 	getInstallButton(): Locator {
 		// Try the empty state first, fallback to header install button
 		const emptyStateButton = this.getEmptyState().locator('button');
@@ -55,8 +64,11 @@ export class CommunityNodesPage extends BasePage {
 		return this.actionToggle.getAction('uninstall');
 	}
 
-	getUpdateButton(): Locator {
-		return this.getCommunityCards().first().getByRole('button', { name: 'Update' });
+	getUpdateButton(packageName?: string): Locator {
+		const card = packageName
+			? this.getCommunityCard(packageName)
+			: this.getCommunityCards().first();
+		return card.getByRole('button', { name: 'Update' });
 	}
 
 	getConfirmUpdateButton(): Locator {
@@ -92,8 +104,8 @@ export class CommunityNodesPage extends BasePage {
 		await this.getUninstallAction().click();
 	}
 
-	async clickUpdateButton(): Promise<void> {
-		await this.getUpdateButton().click();
+	async clickUpdateButton(packageName?: string): Promise<void> {
+		await this.getUpdateButton(packageName).click();
 	}
 
 	async clickConfirmUpdate(): Promise<void> {
@@ -115,8 +127,8 @@ export class CommunityNodesPage extends BasePage {
 		await this.getInstallModal().waitFor({ state: 'hidden' });
 	}
 
-	async updatePackage(): Promise<void> {
-		await this.clickUpdateButton();
+	async updatePackage(packageName?: string): Promise<void> {
+		await this.clickUpdateButton(packageName);
 		await this.clickConfirmUpdate();
 	}
 
