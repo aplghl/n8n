@@ -23,12 +23,14 @@ import { v4 as uuid } from 'uuid';
 // in this area (see `agents-credential-provider.ts`). Resolved lazily by DI.
 // eslint-disable-next-line import-x/no-cycle
 import { CredentialsService } from '@/credentials/credentials.service';
+import type { PolicyActor } from '@/policy/policy-enforcement-backend';
 import { ConflictError } from '@n8n/errors';
 
 import { getAgentOrThrow } from './utils/get-agent-or-throw';
 import { AgentChatAttachmentService } from './agent-chat-attachment.service';
 import { AgentExecutionService } from './agent-execution.service';
 import { AgentKnowledgeService } from './agent-knowledge.service';
+import { AgentPolicyService } from './agent-policy.service';
 import { AgentRuntimeCacheService } from './agent-runtime-cache.service';
 import { AgentTestChatService } from './agent-test-chat.service';
 import { Agent } from './entities/agent.entity';
@@ -46,6 +48,8 @@ import { SubAgentCleanupService } from './sub-agents/sub-agent-cleanup.service';
 import { createAgentCredentialProvider } from './utils/agent-credential-provider';
 
 type CreateAgentOptions = {
+	/** Who asked for the create, named on the policy block audit event. */
+	actor: PolicyActor;
 	availableInMCP?: boolean;
 	id?: string;
 	adoptOnCollision?: boolean;
@@ -81,6 +85,7 @@ export class AgentsService {
 		private readonly eventService: EventService,
 		private readonly agentExecutionService: AgentExecutionService,
 		private readonly credentialsService: CredentialsService,
+		private readonly agentPolicyService: AgentPolicyService,
 	) {}
 
 	/**
@@ -103,7 +108,7 @@ export class AgentsService {
 	 * dedicated "User duplicated agent" event for that case (carrying the
 	 * source agent id), mirroring "User duplicated workflow".
 	 */
-	async create(projectId: string, name: string, options: CreateAgentOptions = {}): Promise<Agent> {
+	async create(projectId: string, name: string, options: CreateAgentOptions): Promise<Agent> {
 		return (await this.createOrAdopt(projectId, name, options)).agent;
 	}
 
@@ -116,6 +121,7 @@ export class AgentsService {
 		projectId: string,
 		name: string,
 		{
+			actor,
 			availableInMCP = false,
 			id,
 			adoptOnCollision = false,
@@ -124,13 +130,14 @@ export class AgentsService {
 			skills,
 			tools,
 			user,
-		}: CreateAgentOptions = {},
+		}: CreateAgentOptions,
 	): Promise<{ agent: Agent; adopted: boolean }> {
 		const { schemaConfig, integrations } = await this.prepareInitialConfig(projectId, name, {
 			schema,
 			user,
 			defaultModel,
 		});
+		await this.agentPolicyService.enforceSave(projectId, null, schemaConfig, null, actor);
 
 		const agent = this.agentRepository.create({
 			...(id ? { id } : {}),
@@ -375,7 +382,7 @@ export class AgentsService {
 	private async prepareInitialConfig(
 		projectId: string,
 		name: string,
-		{ schema, user, defaultModel }: CreateAgentOptions,
+		{ schema, user, defaultModel }: Pick<CreateAgentOptions, 'schema' | 'user' | 'defaultModel'>,
 	): Promise<ReturnType<typeof decomposeJsonConfig>> {
 		const defaultConfig: AgentJsonConfig = {
 			name,
