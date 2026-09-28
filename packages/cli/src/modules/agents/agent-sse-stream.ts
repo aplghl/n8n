@@ -252,6 +252,13 @@ export function emitChunkEvents(chunk: StreamChunk, send: (event: AgentSseEvent)
 			});
 			return;
 		}
+		case 'finish':
+			send({
+				type: 'finish',
+				finishReason: chunk.finishReason,
+				...(chunk.guardrail !== undefined && { guardrail: { code: chunk.guardrail.code } }),
+			});
+			return;
 		case 'error': {
 			const errMsg = stringifyError(chunk.error);
 			send({ type: 'error', message: errMsg });
