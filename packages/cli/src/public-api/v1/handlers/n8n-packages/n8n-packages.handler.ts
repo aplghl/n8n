@@ -274,6 +274,7 @@ const n8nPackagesHandlers: N8nPackagesHandlers = {
 						apiKeyScopes: req.tokenGrant?.apiKeyScopes,
 						workflowConflictPolicy: payload.data.workflowConflictPolicy,
 						workflowIdPolicy: payload.data.workflowIdPolicy,
+						overwriteDeletionPolicy: payload.data.overwriteDeletionPolicy,
 						packageBuffer: packageFile.buffer,
 					},
 					{
