@@ -18,8 +18,8 @@ import path from 'node:path';
 import { UnexpectedError } from 'n8n-workflow';
 
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
+import { ConflictError } from '@/errors/response-errors/conflict.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
-import { UnprocessableRequestError } from '@/errors/response-errors/unprocessable.error';
 import { DirectoryPackageReader } from '@/modules/n8n-packages/io/directory/directory-package-reader';
 import { PackageDirectoryInventoryReader } from '@/modules/n8n-packages/io/directory/package-directory-inventory-reader';
 import { PackageImportConfig } from '@/modules/n8n-packages/n8n-packages.config';
@@ -532,7 +532,8 @@ export class PromotionsService {
 		}
 
 		if (movedWorkflowIds.length > 0) {
-			throw new UnprocessableRequestError(
+			// Mirror the import engine, which rejects a move-shaped change with 409.
+			throw new ConflictError(
 				`These workflows moved to another project: ${movedWorkflowIds.join(', ')}. A selective apply cannot move them. Apply all projects instead.`,
 			);
 		}
