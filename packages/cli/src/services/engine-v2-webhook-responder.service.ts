@@ -184,13 +184,9 @@ export class EngineV2WebhookResponder {
 	}
 
 	private onEnded(received: EndedMessage, response: PendingWebhookResponse): void {
-		// A cancelled run settles no step, so there is no answer to relay.
-		// TODO(CAT-3990): report a cancellation as its own outcome.
+		// Only a cancelled run ends without a settled step, so there is no answer to relay.
 		if (received.lastStep === null) {
-			response.resolve({
-				status: 'undeliverable',
-				error: { name: 'ExecutionCancelled', message: 'The execution was cancelled' },
-			});
+			response.resolve({ status: 'cancelled' });
 			return;
 		}
 
