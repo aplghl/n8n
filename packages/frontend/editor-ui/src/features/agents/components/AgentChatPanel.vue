@@ -63,6 +63,7 @@ const props = withDefaults(
 		beforeSend?: () => Promise<void> | void;
 		inputDraft?: string;
 		backgroundJobsActive?: boolean;
+		budgetCards?: boolean;
 	}>(),
 	{
 		visible: true,
@@ -74,6 +75,7 @@ const props = withDefaults(
 		beforeSend: undefined,
 		inputDraft: undefined,
 		backgroundJobsActive: false,
+		budgetCards: false,
 	},
 );
 
@@ -86,6 +88,7 @@ const emit = defineEmits<{
 	back: [];
 	'open-build': [];
 	'send-to-assistant': [event?: AgentSendToAssistantEvent];
+	'increase-budget': [payload: { field: 'monthlyBudgetUsd' | 'sessionCostCapUsd'; amount: number }];
 }>();
 
 const locale = useI18n();
@@ -125,6 +128,7 @@ const {
 		}
 	},
 	onSessionCreated: (sessionId) => emit('session-created', sessionId),
+	budgetCards: props.budgetCards,
 });
 
 const queueEdit = ref<{
@@ -701,6 +705,7 @@ onBeforeUnmount(() => {
 			:can-send-to-assistant="canSendToAssistant"
 			@resume="resume"
 			@send-to-assistant="emit('send-to-assistant', $event)"
+			@increase-budget="emit('increase-budget', $event)"
 		/>
 
 		<div :class="$style.inputArea">

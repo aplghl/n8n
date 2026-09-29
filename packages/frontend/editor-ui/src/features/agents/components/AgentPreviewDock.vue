@@ -58,8 +58,9 @@ const props = withDefaults(
 		canDeleteSession?: boolean;
 		beforeSend?: () => Promise<void> | void;
 		isDeletingSession?: boolean;
+		budgetCards?: boolean;
 	}>(),
-	{ newSession: false, canDeleteSession: false, isDeletingSession: false },
+	{ newSession: false, canDeleteSession: false, isDeletingSession: false, budgetCards: false },
 );
 
 const emit = defineEmits<{
@@ -73,6 +74,7 @@ const emit = defineEmits<{
 	'open-build': [];
 	'send-to-assistant': [event?: AgentSendToAssistantEvent];
 	'initial-consumed': [];
+	'update:config': [changes: Partial<AgentJsonConfig>];
 }>();
 
 const i18n = useI18n();
@@ -279,11 +281,13 @@ useKeybindings({
 				:initial-prompt="props.initialPrompt"
 				:can-send-to-assistant="props.canSendToAssistant"
 				:before-send="props.beforeSend"
+				:budget-cards="props.budgetCards"
 				@continue-loaded="emit('continue-loaded', $event)"
 				@session-created="emit('session-created', $event)"
 				@open-build="emit('open-build')"
 				@send-to-assistant="emit('send-to-assistant', $event)"
 				@initial-consumed="emit('initial-consumed')"
+				@update:config="emit('update:config', $event)"
 			/>
 		</div>
 	</aside>

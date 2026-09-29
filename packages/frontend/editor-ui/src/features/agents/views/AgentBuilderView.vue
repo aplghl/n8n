@@ -2777,10 +2777,12 @@ function onSwitchAgent(nextAgentId: string) {
 					:new-session="currentSessionIsEphemeral"
 					:can-send-to-assistant="instanceAiAvailable"
 					:before-send="beforePreviewSend"
+					budget-cards
 					@continue-loaded="onContinueLoaded"
 					@session-created="markSessionCreated"
 					@open-build="returnToBuilderFromPreview"
 					@send-to-assistant="onSendPreviewToAssistant"
+					@update:config="onConfigFieldUpdate"
 				/>
 
 				<AgentBuilderEditorColumn
@@ -2878,6 +2880,7 @@ function onSwitchAgent(nextAgentId: string) {
 						:is-deleting-session="isDeletingSession"
 						:can-send-to-assistant="instanceAiAvailable"
 						:before-send="beforePreviewSend"
+						budget-cards
 						@view-trace="viewPreviewTrace"
 						@new-session="startNewPreviewSession"
 						@delete-session="onDeletePreviewSession"
@@ -2887,6 +2890,7 @@ function onSwitchAgent(nextAgentId: string) {
 						@session-created="markSessionCreated"
 						@send-to-assistant="onSendPreviewToAssistant"
 						@initial-consumed="taskPreviewPrompt = undefined"
+						@update:config="onConfigFieldUpdate"
 					/>
 				</N8nResizeWrapper>
 			</template>

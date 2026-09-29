@@ -157,6 +157,14 @@ export type AgentSseEvent =
 			guardrail?: { code: string };
 	  }
 	| {
+			/**
+			 * Preview chat only. Monthly spend crossed the alert line.
+			 * The run continues.
+			 */
+			type: 'budget-notice';
+			code: 'budget.alert';
+	  }
+	| {
 			type: 'error';
 			message: string;
 			/**

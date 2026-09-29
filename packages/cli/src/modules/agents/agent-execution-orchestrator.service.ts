@@ -117,6 +117,8 @@ export interface ExecuteForChatConfig extends ChatExecutionInput, ChatExecutionC
 	 * callers (AI Assistant test calls, MCP, "Run now") leave it unset.
 	 */
 	previewChat?: boolean;
+	/** Preview chat sends the approaching-budget card. The run continues. */
+	onBudgetNotice?: () => void;
 	abortSignal?: AbortSignal;
 }
 
@@ -179,6 +181,8 @@ export interface ResumeForChatConfig extends ChatExecutionCallbacks {
 	 * callers (AI Assistant test calls, MCP, "Run now") leave it unset.
 	 */
 	previewChat?: boolean;
+	/** Preview chat sends the approaching-budget card. The run continues. */
+	onBudgetNotice?: () => void;
 	/** Allows an automatic preview resume to overlap its predecessor's finalization. */
 	automaticPreviewContinuation?: boolean;
 	abortSignal?: AbortSignal;
@@ -240,6 +244,8 @@ export interface StreamChatResponseConfig extends ChatExecutionInput, ChatExecut
 		configuration: IAgentConfigurationTelemetryProperties;
 	};
 	previewChat?: boolean;
+	/** Preview chat sends the approaching-budget card. The run continues. */
+	onBudgetNotice?: () => void;
 	abortSignal?: AbortSignal;
 	/** Add full sanitized tool configuration to approval cards in preview chat. */
 	includeHitlToolDetails?: boolean;
@@ -1079,7 +1085,14 @@ export class AgentExecutionOrchestratorService {
 			resumeData: config.resumeData,
 			options: withBudgetGuardrail(
 				this.createResumeOptions(config, memoryScope, messageContext, tracing),
-				{ budget: runtime.budget, sessionId: memoryScope.threadId, agentId: config.agentId },
+				{
+					budget: runtime.budget,
+					sessionId: memoryScope.threadId,
+					agentId: config.agentId,
+					...(config.previewChat && config.onBudgetNotice
+						? { onNotice: config.onBudgetNotice }
+						: {}),
+				},
 			),
 			recording: this.createResumeRecording(config, checkpoint, runtime, executionSource),
 		};
@@ -1297,6 +1310,7 @@ export class AgentExecutionOrchestratorService {
 			abortSignal,
 			includeHitlToolDetails: true,
 			previewChat,
+			onBudgetNotice: config.onBudgetNotice,
 			onExecutionStarted: config.onExecutionStarted,
 			sandboxPrincipalHash,
 			sessionMode,
@@ -1370,7 +1384,14 @@ export class AgentExecutionOrchestratorService {
 					...(tracing ? { telemetry: tracing } : {}),
 					...(abortSignal ? { abortSignal } : {}),
 				},
-				{ budget: config.budget, sessionId: threadId, agentId },
+				{
+					budget: config.budget,
+					sessionId: threadId,
+					agentId,
+					...(config.previewChat && config.onBudgetNotice
+						? { onNotice: config.onBudgetNotice }
+						: {}),
+				},
 			),
 			recording: this.createChatRecording(config),
 		};
