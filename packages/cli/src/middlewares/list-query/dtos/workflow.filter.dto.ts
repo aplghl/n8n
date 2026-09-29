@@ -1,3 +1,4 @@
+import { WORKFLOW_WONT_EXECUTE_CAUSES, type WorkflowWontExecuteCause } from '@n8n/api-types';
 import { Expose } from 'class-transformer';
 import {
 	ArrayMaxSize,
@@ -6,6 +7,7 @@ import {
 	IsString,
 	IsBoolean,
 	IsArray,
+	IsIn,
 } from 'class-validator';
 
 import { BaseFilter } from './base.filter.dto';
@@ -66,6 +68,13 @@ export class WorkflowFilter extends BaseFilter {
 	@IsOptional()
 	@Expose()
 	triggerNodeTypes?: string[];
+
+	@IsArray()
+	@ArrayUnique()
+	@IsIn(WORKFLOW_WONT_EXECUTE_CAUSES, { each: true })
+	@IsOptional()
+	@Expose()
+	wontExecute?: WorkflowWontExecuteCause[];
 
 	/**
 	 * When `true`, the list is widened to include workflows that the workflow
