@@ -1,0 +1,76 @@
+name: 'Test: E2E community node compatibility'
+
+# Runs the community node API compatibility specs (install, update, and
+# startup guard) against one branch per run. The image is built from that
+# branch, because published images do not ship the test-only e2e controller
+# the harness relies on. One branch per run: the image cache is keyed by the
+# workflow's own commit, so two branches in one run would share an image.
+#
+# Expected: the 2.x lines (master, release candidates) support node API level 1
+# and reject level 3 packages; 3.x supports level 3 and accepts them. The specs
+# read the level from the instance, so the same code covers both.
+
+on:
+  schedule:
+    # One entry per branch; the job maps the cron expression back to a ref.
+    - cron: '0 3 * * 1' # master
+    - cron: '20 3 * * 1' # 3.x
+    - cron: '40 3 * * 1' # release-candidate/2.41.x
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch to build and test (master, 3.x, release-candidate/2.41.x, ...)'
+        required: true
+        default: 'master'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.ref || github.event.schedule }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Resolve branch
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.pick.outputs.ref }}
+      label: ${{ steps.pick.outputs.label }}
+    steps:
+      - id: pick
+        env:
+          INPUT_REF: ${{ inputs.ref }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          case "${INPUT_REF:-$SCHEDULE}" in
+            '0 3 * * 1') REF=master ;;
+            '20 3 * * 1') REF=3.x ;;
+            '40 3 * * 1') REF=release-candidate/2.41.x ;;
+            *) REF="$INPUT_REF" ;;
+          esac
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "label=${REF//\//-}" >> "$GITHUB_OUTPUT"
+
+  prepare-docker:
+    name: Build image from ${{ needs.resolve.outputs.ref }}
+    needs: resolve
+    uses: ./.github/workflows/prepare-docker-reusable.yml
+    with:
+      branch: ${{ needs.resolve.outputs.ref }}
+      runner: blacksmith-8vcpu-ubuntu-2204
+    secrets: inherit
+
+  e2e:
+    name: Compatibility specs on ${{ needs.resolve.outputs.ref }}
+    needs: [resolve, prepare-docker]
+    uses: ./.github/workflows/test-e2e-reusable.yml
+    with:
+      branch: ${{ needs.resolve.outputs.ref }}
+      test-mode: docker-artifact
+      test-command: pnpm --filter=n8n-playwright test:community-packages
+      workers: '1'
+      timeout-minutes: 40
+      artifact-prefix: community-node-compat-${{ needs.resolve.outputs.label }}
+    secrets: inherit
