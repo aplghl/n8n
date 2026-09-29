@@ -44,6 +44,7 @@ import type {
 import { useAgentTelemetry } from '../composables/useAgentTelemetry';
 import { buildAgentConfigFingerprint } from '../composables/agentTelemetry.utils';
 import { AGENT_SESSION_DETAIL_VIEW, TOOL_CALL_STATE } from '../constants';
+import { isBudgetStopCode } from '../utils/budget-config';
 import { TIME } from '@/app/constants/durations';
 import { useAgentBackgroundJobs } from '../composables/useAgentBackgroundJobs';
 
@@ -460,8 +461,14 @@ const hasOpenSuspension = computed(
 			(toolCall) => toolCall.state === TOOL_CALL_STATE.SUSPENDED && toolCall.runId,
 		) ?? false,
 );
+const hasBudgetStop = computed(() =>
+	messages.value.some((message) =>
+		message.budgetNotices?.some((notice) => isBudgetStopCode(notice.code)),
+	),
+);
 const isSubmissionBlocked = computed(
-	() => isPreparingToSend.value || isSubmitting.value || isLoadingHistory.value,
+	() =>
+		isPreparingToSend.value || isSubmitting.value || isLoadingHistory.value || hasBudgetStop.value,
 );
 // Tools still pending/running after the stream ended (desync): the backend
 // finished but their terminal events never arrived. Surfacing Stop here lets
@@ -582,6 +589,24 @@ async function onSubmit(): Promise<SubmitResult> {
 	} finally {
 		isPreparingToSend.value = false;
 	}
+}
+
+function onIncreaseBudget(payload: {
+	field: 'monthlyBudgetUsd' | 'sessionCostCapUsd';
+	amount: number;
+}) {
+	const cleared =
+		payload.field === 'sessionCostCapUsd'
+			? new Set(['budget.session'])
+			: new Set(['budget.monthly', 'budget.alert']);
+	messages.value = messages.value.map((message) => {
+		if (!message.budgetNotices?.some((notice) => cleared.has(notice.code))) return message;
+		return {
+			...message,
+			budgetNotices: message.budgetNotices.filter((notice) => !cleared.has(notice.code)),
+		};
+	});
+	emit('increase-budget', payload);
 }
 
 function sendMessageFromOutside(message: string) {
@@ -705,7 +730,7 @@ onBeforeUnmount(() => {
 			:can-send-to-assistant="canSendToAssistant"
 			@resume="resume"
 			@send-to-assistant="emit('send-to-assistant', $event)"
-			@increase-budget="emit('increase-budget', $event)"
+			@increase-budget="onIncreaseBudget"
 		/>
 
 		<div :class="$style.inputArea">
