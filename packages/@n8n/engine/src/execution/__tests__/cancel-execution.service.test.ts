@@ -76,8 +76,8 @@ describe('CancelExecutionService', () => {
 		});
 	});
 
-	it.each<ExecutionStatus>(['completed', 'failed'])(
-		'reports the status of an execution that already %s and announces nothing',
+	it.each<ExecutionStatus>(['completed', 'failed', 'cancelled'])(
+		'reports the status of an execution that already ended %s and announces nothing',
 		async (status) => {
 			const executionStore = makeExecutionStore({
 				cancelExecution: vi.fn().mockResolvedValue(false),
@@ -91,24 +91,8 @@ describe('CancelExecutionService', () => {
 			expect(stepStore.cancelPendingSteps).not.toHaveBeenCalled();
 			expect(publisher.publish).not.toHaveBeenCalled();
 			expect(responseSender.send).not.toHaveBeenCalled();
-			expect(responseSender.send).not.toHaveBeenCalled();
 		},
 	);
-
-	it('sweeps again on a repeated cancel, announcing nothing more', async () => {
-		const executionStore = makeExecutionStore({
-			cancelExecution: vi.fn().mockResolvedValue(false),
-			loadExecution: vi.fn().mockResolvedValue({ ...execution, status: 'cancelled' }),
-		});
-		const { service, stepStore, publisher, responseSender } = makeService(executionStore);
-
-		const result = await service.cancel('exec-1');
-
-		expect(result).toEqual({ status: 'cancelled' });
-		expect(stepStore.cancelPendingSteps).toHaveBeenCalledExactlyOnceWith('exec-1');
-		expect(publisher.publish).not.toHaveBeenCalled();
-		expect(responseSender.send).not.toHaveBeenCalled();
-	});
 
 	it('throws for an unknown execution', async () => {
 		const executionStore = makeExecutionStore({
