@@ -533,8 +533,10 @@ export function createThreadRuntime(
 	/**
 	 * The tabs the thread view has open, sent to the agent with each message.
 	 * `undefined` when no view reports tabs; the agent then gets every artifact.
+	 * `null` while the view's stored tabs load; the message then carries no tabs,
+	 * so the agent keeps the last tabs it has instead of closed ones.
 	 */
-	const openTabs = shallowRef<OpenThreadTab[]>();
+	const openTabs = shallowRef<OpenThreadTab[] | null>();
 	// Event ids already applied on this thread — guards against replay overlap,
 	// e.g. an auto-reconnect replaying an id that already arrived just before
 	// the disconnect. Not reactive: only consulted inside onSSEMessage.
@@ -1402,7 +1404,7 @@ export function createThreadRuntime(
 		activeArtifactId.value = id;
 	}
 
-	function setOpenTabs(tabs?: OpenThreadTab[]): void {
+	function setOpenTabs(tabs?: OpenThreadTab[] | null): void {
 		openTabs.value = tabs;
 	}
 
@@ -1636,11 +1638,13 @@ export function createThreadRuntime(
 				Intl.DateTimeFormat().resolvedOptions().timeZone,
 				pushRef,
 				instanceAiSettingsStore.computerUseChannels,
-				buildThreadArtifactsContext(
-					producedArtifacts.values(),
-					activeArtifactId.value,
-					openTabs.value,
-				),
+				openTabs.value === null
+					? undefined
+					: buildThreadArtifactsContext(
+							producedArtifacts.values(),
+							activeArtifactId.value,
+							openTabs.value,
+						),
 			);
 
 			return runId;
