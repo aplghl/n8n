@@ -59,6 +59,7 @@ export type {
 	EpisodicMemoryMethods,
 	EpisodicMemoryPrompts,
 	EpisodicMemoryReflectFn,
+	EpisodicMemoryReflectResult,
 	EpisodicMemoryReflection,
 	EpisodicMemoryReflectionApply,
 	EpisodicMemoryReflectionApplyMerge,
@@ -85,6 +86,8 @@ export type {
 	SmoothStreamOptions,
 	TokenUsage,
 	AgentExecutionCounter,
+	SideCallTask,
+	SideCallUsageReport,
 	PersistedExecutionOptions,
 	AnthropicPromptCachingConfig,
 	OpenAIPromptCachingConfig,
@@ -100,8 +103,10 @@ export type {
 	ObservationLogEntry,
 	ObservationLogMarker,
 	ObservationLogMerge,
+	ObservationLogObserveResult,
 	ObservationLogReadOptions,
 	ObservationLogReflection,
+	ObservationLogReflectResult,
 	ObservationLogReflectionResult,
 	ObservationLogScope,
 	ObservationLogStatus,
@@ -376,6 +381,7 @@ export {
 export type {
 	RunEpisodicMemoryCandidateProcessorOpts,
 	RunEpisodicMemoryCandidateProcessorResult,
+	EpisodicMemoryUsageReport,
 } from './runtime/memory/episodic-memory-capture';
 export {
 	DEFAULT_EPISODIC_MEMORY_CAPTURE_TOOL_INSTRUCTION,
