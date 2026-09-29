@@ -154,7 +154,7 @@ describe('EngineV2WebhookResponder', () => {
 	});
 
 	it('reports a cancelled run', async () => {
-		const pending = await responder.waitForResponse(createExecutionIdV2());
+		const pending = await responder.waitForResponse(createExecutionIdV2(), runEnd);
 
 		deliver(endedResponse(pending.executionId, { status: 'cancelled', lastStep: null }));
 
