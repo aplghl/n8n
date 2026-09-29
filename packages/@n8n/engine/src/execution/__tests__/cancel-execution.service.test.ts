@@ -20,6 +20,7 @@ const execution: ExecutionRecord = {
 	workflow: {},
 	triggerOutputs: null,
 	callerContext: { hostMode: 'trigger' },
+	responseExpectation: { kind: 'none' },
 };
 
 function makeExecutionStore(overrides: Partial<ExecutionStore> = {}): ExecutionStore {
@@ -44,7 +45,6 @@ function makeService(executionStore: ExecutionStore) {
 	const publisher: LifecycleEventPublisher = { publish: vi.fn(), stop: vi.fn() };
 	const responseSender: ExecutionResponseSender = {
 		send: vi.fn(),
-		emitterFor: vi.fn(),
 		stop: vi.fn(),
 	};
 	const service = new CancelExecutionService(executionStore, stepStore, publisher, responseSender);
